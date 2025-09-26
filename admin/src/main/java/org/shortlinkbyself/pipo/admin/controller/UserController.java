@@ -3,6 +3,7 @@ package org.shortlinkbyself.pipo.admin.controller;
 import cn.hutool.core.bean.BeanUtil;
 import lombok.RequiredArgsConstructor;
 import org.shortlinkbyself.pipo.admin.common.convention.result.Result;
+import org.shortlinkbyself.pipo.admin.common.convention.result.Results;
 import org.shortlinkbyself.pipo.admin.dto.resp.UserActualRespDTO;
 import org.shortlinkbyself.pipo.admin.dto.resp.UserRespDTO;
 import org.shortlinkbyself.pipo.admin.service.UserService;
@@ -10,8 +11,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.shortlinkbyself.pipo.admin.service.impl.UserServiceImpl;
-import org.shortlinkbyself.pipo.admin.common.convention.result.Results;
 /**
  * 用户管理控制层
  */
@@ -34,8 +33,8 @@ public class UserController {
     }
 
     @GetMapping("user/has-username")
-    public Result<Boolean> hasUsername(@PathVariable("username") String username) {
-        return Results.success(userService.hasUsername(username));
+    public Result<Boolean> isUsernameAvailable(@PathVariable("username") String username) {
+        return Results.success(userService.isUsernameAvailable(username));
     }
 
 

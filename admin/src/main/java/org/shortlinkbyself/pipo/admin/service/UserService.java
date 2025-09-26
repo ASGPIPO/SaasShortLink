@@ -19,5 +19,5 @@ public interface UserService extends IService<UserDO> {
     public UserRespDTO getUserByUsername(String username);
 
 
-    public Boolean hasUsername(String username);
+    public Boolean isUsernameAvailable(String username);
 }
