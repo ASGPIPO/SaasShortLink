@@ -1,7 +1,10 @@
 package org.shortlinkbyself.pipo.admin.dto.resp;
 
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import lombok.Data;
+import org.shortlinkbyself.pipo.admin.common.serialize.PhoneDesensitizationSerializer;
 
+@Data
 public class UserRespDTO {
     /**
      * id
@@ -26,7 +29,7 @@ public class UserRespDTO {
     /**
      * 手机号
      */
-
+    @JsonSerialize(using = PhoneDesensitizationSerializer.class)
     private String phone;
 
     /**

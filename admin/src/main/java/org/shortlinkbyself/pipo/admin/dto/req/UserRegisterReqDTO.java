@@ -1,12 +1,12 @@
-package org.shortlinkbyself.pipo.admin.dto.resp;
+package org.shortlinkbyself.pipo.admin.dto.req;
 
 import lombok.Data;
+
+/**
+ * 用户注册请求参数
+ */
 @Data
-public class UserActualRespDTO {
-    /**
-     * id
-     */
-    private Long id;
+public class UserRegisterReqDTO {
 
     /**
      * 用户名
@@ -26,14 +26,10 @@ public class UserActualRespDTO {
     /**
      * 手机号
      */
-
     private String phone;
 
     /**
      * 邮箱
      */
     private String mail;
-
-
-
 }
