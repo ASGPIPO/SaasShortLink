@@ -1,5 +1,6 @@
 package org.shortlinkbyself.pipo.admin.service.impl;
 
+import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -16,6 +17,8 @@ import org.shortlinkbyself.pipo.admin.dao.entity.GroupDO;
 import org.shortlinkbyself.pipo.admin.dao.entity.GroupUniqueDO;
 import org.shortlinkbyself.pipo.admin.dao.mapper.GroupMapper;
 import org.shortlinkbyself.pipo.admin.dao.mapper.GroupUniqueMapper;
+import org.shortlinkbyself.pipo.admin.common.biz.user.UserContext;
+import org.shortlinkbyself.pipo.admin.dto.resp.ShortLinkGroupRespDTO;
 import org.shortlinkbyself.pipo.admin.service.GroupService;
 import org.shortlinkbyself.pipo.admin.tookit.RandomGenerator;
 import org.springframework.beans.factory.annotation.Value;
@@ -40,8 +43,7 @@ public class GroupServiceImpl extends ServiceImpl<GroupMapper, GroupDO> implemen
 
     @Override
     public void saveGroup(String groupName) {
-        saveGroup("test", groupName);
-        //TODO saveGroup(UserContext.getUsername(), groupName);
+        saveGroup(UserContext.getUsername(), groupName);
     }
 
     @Override
@@ -84,7 +86,14 @@ public class GroupServiceImpl extends ServiceImpl<GroupMapper, GroupDO> implemen
 
 
 
-
+    @Override
+    public List<ShortLinkGroupRespDTO> getGroupList() {
+        LambdaQueryWrapper<GroupDO> lambdaQueryWrapper = new LambdaQueryWrapper<>();
+        lambdaQueryWrapper.eq(GroupDO::getDelFlag, 0).eq(GroupDO::getUsername, UserContext.getUsername())
+                .orderByDesc(GroupDO::getSortOrder, GroupDO::getUpdateTime);
+        List<GroupDO> selectList = baseMapper.selectList(lambdaQueryWrapper);
+        return BeanUtil.copyToList(selectList, ShortLinkGroupRespDTO.class);
+    }
 
 
     private String saveGroupUniqueReturnGid() {

@@ -7,6 +7,8 @@ import org.shortlinkbyself.pipo.admin.dto.resp.ShortLinkGroupRespDTO;
 import org.shortlinkbyself.pipo.admin.service.GroupService;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/short-link/admin/v1")
 @RequiredArgsConstructor
@@ -18,5 +20,10 @@ public class GroupController {
         groupService.saveGroup(requestParam.getName());
         return Results.success();
 
+    }
+
+    @GetMapping("/group")
+    public Result<List<ShortLinkGroupRespDTO>> getGroupList() {
+        return Results.success(groupService.getGroupList());
     }
 }
