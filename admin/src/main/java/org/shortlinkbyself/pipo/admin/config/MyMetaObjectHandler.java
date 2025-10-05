@@ -1,4 +1,4 @@
-package org.shortlinkbyself.pipo.admin.controller;
+package org.shortlinkbyself.pipo.admin.config;
 
 import com.baomidou.mybatisplus.core.handlers.MetaObjectHandler;
 import org.apache.ibatis.reflection.MetaObject;

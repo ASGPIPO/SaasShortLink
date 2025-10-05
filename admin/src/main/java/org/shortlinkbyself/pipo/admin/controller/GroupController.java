@@ -3,6 +3,7 @@ package org.shortlinkbyself.pipo.admin.controller;
 import lombok.RequiredArgsConstructor;
 import org.shortlinkbyself.pipo.admin.common.convention.result.Result;
 import org.shortlinkbyself.pipo.admin.common.convention.result.Results;
+import org.shortlinkbyself.pipo.admin.dto.req.ShortLinkGroupSortReqDTO;
 import org.shortlinkbyself.pipo.admin.dto.resp.ShortLinkGroupRespDTO;
 import org.shortlinkbyself.pipo.admin.service.GroupService;
 import org.springframework.web.bind.annotation.*;
@@ -26,4 +27,27 @@ public class GroupController {
     public Result<List<ShortLinkGroupRespDTO>> getGroupList() {
         return Results.success(groupService.getGroupList());
     }
+
+    @PutMapping("/group")
+    public Result<Void> updateGroup(@RequestBody ShortLinkGroupRespDTO requestParam) {
+        groupService.updateGroup(requestParam);
+        return Results.success();
+
+    }
+    @DeleteMapping("/group")
+    public Result<Void> updateGroup(@RequestParam String gid) {
+        groupService.deleteGroup(gid);
+        return Results.success();
+
+    }
+
+    /**
+     * 排序短链接分组
+     */
+    @PostMapping("/group/sort")
+    public Result<Void> sortGroup(@RequestBody List<ShortLinkGroupSortReqDTO> requestParam) {
+        groupService.sortGroup(requestParam);
+        return Results.success();
+    }
+
 }
