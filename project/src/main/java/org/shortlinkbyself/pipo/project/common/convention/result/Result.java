@@ -15,49 +15,51 @@
  * limitations under the License.
  */
 
-package org.shortlinkbyself.pipo.admin.dao.entity;
+package org.shortlinkbyself.pipo.project.common.convention.result;
 
-import com.baomidou.mybatisplus.annotation.TableName;
-import org.shortlinkbyself.pipo.admin.common.database.BaseDO;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.experimental.Accessors;
 
+import java.io.Serial;
+import java.io.Serializable;
 
 /**
- * 短链接分组实体
+ * 全局返回对象
  *
  */
 @Data
-@TableName("t_group")
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class GroupDO extends BaseDO {
+@Accessors(chain = true)
+public class Result<T> implements Serializable {
+
+    @Serial
+    private static final long serialVersionUID = 5679018624309023727L;
 
     /**
-     * id
+     * 正确返回码
      */
-    private Long id;
+    public static final String SUCCESS_CODE = "0";
 
     /**
-     * 分组标识
+     * 返回码
      */
-    private String gid;
+    private String code;
 
     /**
-     * 分组名称
+     * 返回消息
      */
-    private String name;
+    private String message;
 
     /**
-     * 创建分组用户名
+     * 响应数据
      */
-    private String username;
+    private T data;
 
     /**
-     * 分组排序
+     * 请求ID
      */
-    private Integer sortOrder;
+    private String requestId;
+
+    public boolean isSuccess() {
+        return SUCCESS_CODE.equals(code);
+    }
 }

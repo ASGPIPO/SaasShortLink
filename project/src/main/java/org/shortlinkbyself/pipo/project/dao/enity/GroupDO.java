@@ -15,15 +15,14 @@
  * limitations under the License.
  */
 
-package org.shortlinkbyself.pipo.admin.dao.entity;
+package org.shortlinkbyself.pipo.project.dao.enity;
 
 import com.baomidou.mybatisplus.annotation.TableName;
-import org.shortlinkbyself.pipo.admin.common.database.BaseDO;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
+import org.shortlinkbyself.pipo.project.common.database.BaseDO;
 
 /**
  * 短链接分组实体

@@ -1,0 +1,25 @@
+server:
+  port: 8001
+
+spring:
+  application:
+    name: short-link-project
+  datasource:
+    driver-class-name: org.apache.shardingsphere.driver.ShardingSphereDriver
+    url: jdbc:shardingsphere:classpath:shardingsphere-config-dev.yaml
+  data:
+    redis:
+      host: 127.0.0.1
+      port: 6379
+#  mvc:
+#    view:
+#      prefix: /templates/
+#      suffix: .html
+#  cloud:
+#    nacos:
+#      discovery:
+#        server-addr: 127.0.0.1:8848
+
+short-link:
+  domain:
+    default: nurl.ink:8001

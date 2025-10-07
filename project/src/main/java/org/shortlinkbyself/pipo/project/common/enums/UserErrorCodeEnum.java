@@ -15,49 +15,41 @@
  * limitations under the License.
  */
 
-package org.shortlinkbyself.pipo.admin.dao.entity;
+package org.shortlinkbyself.pipo.project.common.enums;
 
-import com.baomidou.mybatisplus.annotation.TableName;
-import org.shortlinkbyself.pipo.admin.common.database.BaseDO;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 
+import org.shortlinkbyself.pipo.project.common.convention.errorcode.IErrorCode;
 
 /**
- * 短链接分组实体
+ * 用户错误码
  *
  */
-@Data
-@TableName("t_group")
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class GroupDO extends BaseDO {
+public enum UserErrorCodeEnum implements IErrorCode {
 
-    /**
-     * id
-     */
-    private Long id;
+    USER_NULL("B000200", "用户记录不存在"),
 
-    /**
-     * 分组标识
-     */
-    private String gid;
+    USER_NAME_EXIST("B000201", "用户名已存在"),
 
-    /**
-     * 分组名称
-     */
-    private String name;
+    USER_EXIST("B000202", "用户记录已存在"),
 
-    /**
-     * 创建分组用户名
-     */
-    private String username;
+    USER_SAVE_ERROR("B000203", "用户记录新增失败");
 
-    /**
-     * 分组排序
-     */
-    private Integer sortOrder;
+    private final String code;
+
+    private final String message;
+
+    UserErrorCodeEnum(String code, String message) {
+        this.code = code;
+        this.message = message;
+    }
+
+    @Override
+    public String code() {
+        return code;
+    }
+
+    @Override
+    public String message() {
+        return message;
+    }
 }

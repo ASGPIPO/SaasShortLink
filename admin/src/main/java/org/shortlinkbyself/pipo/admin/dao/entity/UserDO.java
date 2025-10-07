@@ -19,7 +19,7 @@ package org.shortlinkbyself.pipo.admin.dao.entity;
 
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
-import org.shortlinkbyself.pipo.admin.common.BaseDO;
+import org.shortlinkbyself.pipo.admin.common.database.BaseDO;
 
 /**
  * 用户持久层实体

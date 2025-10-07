@@ -1,4 +1,4 @@
-package org.shortlinkbyself.pipo.admin.common;
+package org.shortlinkbyself.pipo.admin.common.database;
 
 import com.baomidou.mybatisplus.annotation.FieldFill;
 import com.baomidou.mybatisplus.annotation.TableField;
