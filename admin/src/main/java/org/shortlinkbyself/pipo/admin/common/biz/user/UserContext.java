@@ -45,13 +45,13 @@ public final class UserContext {
     }
 
     /**
-     * 获取上下文中用户真实姓名
+     * 获取上下文中用户token
      *
-     * @return 用户真实姓名
+     * @return 用户token
      */
-    public static String getRealName() {
+    public static String getToken() {
         UserInfoDTO userInfoDTO = USER_THREAD_LOCAL.get();
-        return Optional.ofNullable(userInfoDTO).map(UserInfoDTO::getRealName).orElse(null);
+        return Optional.ofNullable(userInfoDTO).map(UserInfoDTO::getToken).orElse(null);
     }
 
     /**
