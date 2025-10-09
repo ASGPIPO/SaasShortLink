@@ -15,30 +15,16 @@
  * limitations under the License.
  */
 
-package org.shortlinkbyself.pipo.project.dao.enity;
+package org.shortlinkbyself.pipo.project.dto.resp;
 
-import com.baomidou.mybatisplus.annotation.TableName;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
-import lombok.NoArgsConstructor;
-import org.shortlinkbyself.pipo.project.common.database.BaseDO;
 
 /**
- * 短链接分组实体
+ * 短链接分组查询返回参数
  *
  */
 @Data
-@TableName("t_group")
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class GroupDO extends BaseDO {
-
-    /**
-     * id
-     */
-    private Long id;
+public class ShortLinkGroupCountQueryRespDTO {
 
     /**
      * 分组标识
@@ -46,17 +32,7 @@ public class GroupDO extends BaseDO {
     private String gid;
 
     /**
-     * 分组名称
+     * 短链接数量
      */
-    private String name;
-
-    /**
-     * 创建分组用户名
-     */
-    private String username;
-
-    /**
-     * 分组排序
-     */
-    private Integer sortOrder;
+    private Integer shortLinkCount;
 }

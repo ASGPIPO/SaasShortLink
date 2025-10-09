@@ -1,16 +1,21 @@
 package org.shortlinkbyself.pipo.project.service.impl;
 
+import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.lang.UUID;
 import cn.hutool.core.text.StrBuilder;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.google.protobuf.ServiceException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RBloomFilter;
-import org.shortlinkbyself.pipo.project.dao.enity.ShortLinkDO;
+import org.shortlinkbyself.pipo.project.dao.entity.ShortLinkDO;
 import org.shortlinkbyself.pipo.project.dao.mapper.ShortLinkMapper;
 import org.shortlinkbyself.pipo.project.dto.req.ShortLinkCreateReqDTO;
+import org.shortlinkbyself.pipo.project.dto.req.ShortLinkPageReqDTO;
 import org.shortlinkbyself.pipo.project.dto.resp.ShortLinkCreateRespDTO;
+import org.shortlinkbyself.pipo.project.dto.resp.ShortLinkPageRespDTO;
 import org.shortlinkbyself.pipo.project.service.ShortLinkService;
 import org.shortlinkbyself.pipo.project.tookit.HashUtils;
 import org.springframework.beans.factory.annotation.Value;
@@ -68,6 +73,23 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
                 .gid(requestParam.getGid())
                 .build();
     }
+
+    @Override
+    public IPage<ShortLinkPageRespDTO> pageShortlink(ShortLinkPageReqDTO requestParam) {
+        LambdaUpdateWrapper<ShortLinkDO> lambdaUpdateWrapper = new LambdaUpdateWrapper<>();
+        lambdaUpdateWrapper.eq(ShortLinkDO::getGid, requestParam.getGid())
+                .eq(ShortLinkDO::getEnableStatus, 0)
+                .eq(ShortLinkDO::getDelFlag, 0)
+                .orderByDesc(ShortLinkDO::getUpdateTime);
+        IPage<ShortLinkDO> resultPage = baseMapper.selectPage(requestParam, lambdaUpdateWrapper);
+        return resultPage.convert(each -> {
+            ShortLinkPageRespDTO result = BeanUtil.toBean(each, ShortLinkPageRespDTO.class);
+            result.setDomain("http://" + result.getDomain());
+            return result;
+        });
+    }
+
+
 
     private String generateSuffix(ShortLinkCreateReqDTO requestParam) throws ServiceException {
         String domain = requestParam.getDomain();

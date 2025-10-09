@@ -18,8 +18,11 @@
         <jjwt.version>0.9.1</jjwt.version>
         <fastjson2.version>2.0.36</fastjson2.version>
         <mybatis-plus.version>3.5.3.1</mybatis-plus.version>
-        <mybatis-plus-core.version>3.5.12</mybatis-plus-core.version>
-        <mybatis-plus-spring.version>3.5.12</mybatis-plus-spring.version>
+        <mybatis-plus-core.version>3.5.3.1</mybatis-plus-core.version>
+        <mybatis-plus-spring.version>3.5.3.1</mybatis-plus-spring.version>
+<!--        <mybatis-plus-core.version>3.5.12</mybatis-plus-core.version>-->
+<!--        <mybatis-plus-spring.version>3.5.12</mybatis-plus-spring.version>-->
+
         <dozer-core.version>6.5.2</dozer-core.version>
         <hutool-all.version>5.8.27</hutool-all.version>
         <redisson.version>3.27.2</redisson.version>
