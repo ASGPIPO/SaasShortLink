@@ -12,22 +12,27 @@ import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RBloomFilter;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
+import org.shortlinkbyself.pipo.admin.common.biz.user.UserContext;
 import org.shortlinkbyself.pipo.admin.common.convention.exception.ClientException;
 import org.shortlinkbyself.pipo.admin.common.convention.exception.ServiceException;
 import org.shortlinkbyself.pipo.admin.dao.entity.GroupDO;
 import org.shortlinkbyself.pipo.admin.dao.entity.GroupUniqueDO;
 import org.shortlinkbyself.pipo.admin.dao.mapper.GroupMapper;
 import org.shortlinkbyself.pipo.admin.dao.mapper.GroupUniqueMapper;
-import org.shortlinkbyself.pipo.admin.common.biz.user.UserContext;
 import org.shortlinkbyself.pipo.admin.dto.req.ShortLinkGroupSortReqDTO;
 import org.shortlinkbyself.pipo.admin.dto.resp.ShortLinkGroupRespDTO;
+import org.shortlinkbyself.pipo.admin.remote.ShortLinkRemoteService;
+import org.shortlinkbyself.pipo.admin.remote.dto.resp.ShortLinkGroupCountQueryRespDTO;
 import org.shortlinkbyself.pipo.admin.service.GroupService;
 import org.shortlinkbyself.pipo.admin.tookit.RandomGenerator;
+import org.shortlinkbyself.pipo.project.common.convention.result.Result;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 
 import static org.shortlinkbyself.pipo.admin.common.constant.RedisCacheConstant.LOCK_GROUP_CREATE_KEY;
 
@@ -41,7 +46,8 @@ public class GroupServiceImpl extends ServiceImpl<GroupMapper, GroupDO> implemen
     private final RBloomFilter<String> gidRegisterCachePenetrationBloomFilter;
     private final RedissonClient redissonClient;
     private final GroupUniqueMapper groupUniqueMapper;
-
+    ShortLinkRemoteService shortLinkRemoteService = new ShortLinkRemoteService() {
+    };
 
     @Override
     public void saveGroup(String groupName) {
@@ -90,11 +96,22 @@ public class GroupServiceImpl extends ServiceImpl<GroupMapper, GroupDO> implemen
 
     @Override
     public List<ShortLinkGroupRespDTO> getGroupList() {
-        LambdaQueryWrapper<GroupDO> lambdaQueryWrapper = new LambdaQueryWrapper<>();
-        lambdaQueryWrapper.eq(GroupDO::getDelFlag, 0).eq(GroupDO::getUsername, UserContext.getUsername())
+        LambdaQueryWrapper<GroupDO> queryWrapper = Wrappers.lambdaQuery(GroupDO.class)
+                .eq(GroupDO::getDelFlag, 0)
+                .eq(GroupDO::getUsername, UserContext.getUsername())
                 .orderByDesc(GroupDO::getSortOrder, GroupDO::getUpdateTime);
-        List<GroupDO> selectList = baseMapper.selectList(lambdaQueryWrapper);
-        return BeanUtil.copyToList(selectList, ShortLinkGroupRespDTO.class);
+        List<GroupDO> groupDOList = baseMapper.selectList(queryWrapper);
+        Result<List<ShortLinkGroupCountQueryRespDTO>> listResult = shortLinkRemoteService
+                .listGroupShortLinkCount(groupDOList.stream().map(GroupDO::getGid).toList());
+        List<ShortLinkGroupRespDTO> shortLinkGroupRespDTOList = BeanUtil.copyToList(groupDOList, ShortLinkGroupRespDTO.class);
+        shortLinkGroupRespDTOList.forEach(each -> {
+            Optional<ShortLinkGroupCountQueryRespDTO> first = listResult.getData().stream()
+                    .filter(item -> Objects.equals(item.getGid(), each.getGid()))
+                    .findFirst();
+            each.setShortLinkCount(first.map(ShortLinkGroupCountQueryRespDTO::getShortLinkCount).orElse(0));
+            first.ifPresent(item -> each.setShortLinkCount(first.get().getShortLinkCount()));
+        });
+        return shortLinkGroupRespDTOList;
     }
 
     @Override
