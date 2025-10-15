@@ -133,9 +133,35 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
                 .eq("enable_status", 0)
                 .groupBy("gid");
         List<Map<String, Object>> shortLinkDOList = baseMapper.selectMaps(queryWrapper);
-        List<ShortLinkGroupCountQueryRespDTO> shortLinkGroupCountQueryRespDTOS = BeanUtil.copyToList(shortLinkDOList, ShortLinkGroupCountQueryRespDTO.class);
-        return shortLinkGroupCountQueryRespDTOS;
+        return BeanUtil.copyToList(shortLinkDOList, ShortLinkGroupCountQueryRespDTO.class);
     }
 
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Void updateShortLinkInfo(ShortLinkUpdateReqDTO shortLinkInfo) {
+        LambdaQueryWrapper<ShortLinkDO> lambdaQueryWrapper = new LambdaQueryWrapper<>();
+        lambdaQueryWrapper.eq(ShortLinkDO::getGid, shortLinkInfo.getOriginGid())
+                .eq(ShortLinkDO::getFullShortUrl, shortLinkInfo.getFullShortUrl())
+                .eq(ShortLinkDO::getDelFlag, 0)
+                .eq(ShortLinkDO::getEnableStatus, 0);
+        ShortLinkDO hasShortLinkDO = baseMapper.selectOne(lambdaQueryWrapper);
+        if (hasShortLinkDO == null) {
+            throw new ClientException("短链接记录不存在");
+        }
+        if (Objects.equals(hasShortLinkDO.getGid(), shortLinkInfo.getOriginGid())) {
+            LambdaUpdateWrapper<ShortLinkDO> lambdaUpdateWrapper = new LambdaUpdateWrapper<>();
+            lambdaUpdateWrapper.eq(ShortLinkDO::getFullShortUrl, shortLinkInfo.getFullShortUrl())
+                    .eq(ShortLinkDO::getGid, shortLinkInfo.getOriginGid())
+                    .eq(ShortLinkDO::getDelFlag, 0)
+                    .eq(ShortLinkDO::getEnableStatus, 0)
+                    .set(ShortLinkDO::getOriginUrl, shortLinkInfo.getOriginUrl())
+                    .set(ShortLinkDO::getDescribe, shortLinkInfo.getDescribe())
+                    .set(ShortLinkDO::getValidDateType, shortLinkInfo.getValidDateType())
+                    .set(Objects.equals(shortLinkInfo.getValidDateType(), VailDateTypeEnum.PERMANENT.getType()), ShortLinkDO::getValidDate, null);
+
+            baseMapper.update(null, lambdaUpdateWrapper);
+        }
+        return null;
+    }
 
 }
