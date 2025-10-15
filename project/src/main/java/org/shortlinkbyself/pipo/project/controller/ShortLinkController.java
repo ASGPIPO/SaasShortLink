@@ -2,6 +2,8 @@ package org.shortlinkbyself.pipo.project.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.google.protobuf.ServiceException;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.shortlinkbyself.pipo.project.common.convention.result.Result;
 import org.shortlinkbyself.pipo.project.common.convention.result.Results;
@@ -21,6 +23,13 @@ import java.util.List;
 public class ShortLinkController {
 
     private final ShortLinkService shortLinkService;
+
+
+    @GetMapping("/{short-uri}")
+    public void restoreUrl(@PathVariable("short-uri") String shortUri, ServletRequest request, ServletResponse response) {
+        shortLinkService.restoreUrl(shortUri, request, response);
+    }
+
 
     @PostMapping("/api/short-link/v1/create")
 //    @SentinelResource(

@@ -1,4 +1,4 @@
-package org.shortlinkbyself.pipo.project.tookit;
+package org.shortlinkbyself.pipo.project.toolkit;
 
 import cn.hutool.core.lang.hash.MurmurHash;
 

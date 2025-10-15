@@ -3,6 +3,8 @@ package org.shortlinkbyself.pipo.project.service;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.google.protobuf.ServiceException;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
 import org.shortlinkbyself.pipo.project.dao.entity.ShortLinkDO;
 import org.shortlinkbyself.pipo.project.dto.req.ShortLinkCreateReqDTO;
 import org.shortlinkbyself.pipo.project.dto.req.ShortLinkPageReqDTO;
@@ -21,4 +23,6 @@ public interface ShortLinkService extends IService<ShortLinkDO> {
     List<ShortLinkGroupCountQueryRespDTO> listGroupShortLinkCount(List<String> requestParam);
 
     Void updateShortLinkInfo(ShortLinkUpdateReqDTO shortLinkInfo);
+
+    void restoreUrl(String shortUri, ServletRequest request, ServletResponse response);
 }
