@@ -28,6 +28,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 import static org.shortlinkbyself.pipo.admin.common.constant.RedisCacheConstant.LOCK_USER_REGISTER_KEY;
@@ -40,6 +41,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDO> implements 
     private final RBloomFilter<String> userRegisterCachePenetrationBloomFilter;
     private final RedissonClient redissonClient;
     private final StringRedisTemplate stringRedisTemplate;
+    private final GroupService groupService;
     @Override
     public UserRespDTO getUserByUsername(String username) {
         LambdaQueryWrapper<UserDO> queryWrapper = new LambdaQueryWrapper<>();
@@ -75,7 +77,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDO> implements 
                 throw new ClientException(UserErrorCodeEnum.USER_SAVE_ERROR);
             }
             userRegisterCachePenetrationBloomFilter.add(requestParam.getUsername());
-            
+            groupService.saveGroup("默认分组");
         }
         finally {
             lock.unlock();
@@ -83,10 +85,12 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, UserDO> implements 
     }
     @Override
     public void update(UserUpdateReqDTO userUpdateReqDTO) {
-        //TODO
 
+        if (!Objects.equals(userUpdateReqDTO.getUsername(), UserContext.getUsername())) {
+            throw new ClientException("当前登录用户修改请求异常");
+        }
         LambdaUpdateWrapper<UserDO> lambdaUpdateWrapper = new LambdaUpdateWrapper<>();
-        lambdaUpdateWrapper.eq(UserDO::getUsername, userUpdateReqDTO.getUsername());
+        lambdaUpdateWrapper.eq(UserDO::getUsername, UserContext.getUsername());
         baseMapper.update(BeanUtil.toBean(userUpdateReqDTO, UserDO.class), lambdaUpdateWrapper);
 
     }
