@@ -18,6 +18,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RBloomFilter;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.shortlinkbyself.pipo.project.common.convention.exception.ClientException;
 import org.shortlinkbyself.pipo.project.common.enums.VailDateTypeEnum;
 import org.shortlinkbyself.pipo.project.dao.entity.ShortLinkDO;
@@ -42,7 +44,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
-import static org.shortlinkbyself.pipo.project.common.constant.RedisKeyConstant.GOTO_SHORT_LINK_KEY;
+import static org.shortlinkbyself.pipo.project.common.constant.RedisKeyConstant.*;
 
 @Slf4j
 @Service
@@ -51,6 +53,8 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
     private final RBloomFilter<String> shortLinkCreateCachePenetrationBloomFilter;
     private final ShortLinkGotoMapper shortLinkGotoMapper;
     private final StringRedisTemplate stringRedisTemplate;
+    private final RBloomFilter rBloomFilter;
+    private final RedissonClient redissonClient;
 
     @Value("${short-link.domain.default}")
     private String createShortLinkDefaultDomain;
@@ -197,6 +201,7 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
         }
         return null;
     }
+
     @SneakyThrows
     @Override
     public void restoreUrl(String shortUri, ServletRequest request, ServletResponse response) {
@@ -207,31 +212,77 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
                 .map(each -> ":" + each)
                 .orElse("");
         String fullShortUrl = serverName + serverPort + "/" + shortUri;
+
+        // direct return origin link
         String originLink = stringRedisTemplate.opsForValue().get(String.format(GOTO_SHORT_LINK_KEY, fullShortUrl));
         if (StrUtil.isNotBlank(originLink)) {
 
             ((HttpServletResponse) response).sendRedirect(originLink);
+            return;
         }
-        LambdaQueryWrapper<ShortLinkGotoDO> lambdaQueryWrapper = new LambdaQueryWrapper<>();
-        lambdaQueryWrapper
-                .eq(ShortLinkGotoDO::getFullShortUrl, fullShortUrl);
-        ShortLinkGotoDO gotoDO = shortLinkGotoMapper.selectOne(lambdaQueryWrapper);
-        if (gotoDO == null) {
+        //isNotPresent?
+        boolean contains = shortLinkCreateCachePenetrationBloomFilter.contains(fullShortUrl);
+        if (!contains) {
             ((HttpServletResponse) response).sendRedirect("/page/notfound");
             return;
         }
-        LambdaQueryWrapper<ShortLinkDO> queryWrapper = Wrappers.lambdaQuery(ShortLinkDO.class)
-                .eq(ShortLinkDO::getGid, gotoDO.getGid())
-                .eq(ShortLinkDO::getFullShortUrl, fullShortUrl)
-                .eq(ShortLinkDO::getDelFlag, 0)
-                .eq(ShortLinkDO::getEnableStatus, 0);
-        ShortLinkDO shortLinkDO = baseMapper.selectOne(queryWrapper);
-        if (shortLinkDO == null || (shortLinkDO.getValidDate() != null && shortLinkDO.getValidDate().before(new Date()))) {
-            ((HttpServletResponse) response).sendRedirect("/page/notfound");
-            return;
-        }
-        ((HttpServletResponse) response).sendRedirect(shortLinkDO.getOriginUrl());
 
+        //null value check and filter
+        String gotoIsNullShortLink = stringRedisTemplate.opsForValue().get(String.format(GOTO_IS_NULL_SHORT_LINK_KEY, fullShortUrl));
+        if (StrUtil.isNotBlank(gotoIsNullShortLink)) {
+            ((HttpServletResponse) response).sendRedirect("/page/notfound");
+            return;
+        }
+        RLock lock = redissonClient.getLock(String.format(LOCK_GOTO_SHORT_LINK_KEY, fullShortUrl));
+        lock.lock();
+        try {
+        //DCL
+            originLink = stringRedisTemplate.opsForValue().get(String.format(GOTO_SHORT_LINK_KEY, fullShortUrl));
+            if (StrUtil.isNotBlank(originLink)) {
+
+                ((HttpServletResponse) response).sendRedirect(originLink);
+                return;
+            }
+
+            gotoIsNullShortLink = stringRedisTemplate.opsForValue().get(String.format(GOTO_IS_NULL_SHORT_LINK_KEY, fullShortUrl));
+            if (StrUtil.isNotBlank(gotoIsNullShortLink)) {
+                ((HttpServletResponse) response).sendRedirect("/page/notfound");
+                return;
+            }
+
+            LambdaQueryWrapper<ShortLinkGotoDO> lambdaQueryWrapper = new LambdaQueryWrapper<>();
+            lambdaQueryWrapper
+                    .eq(ShortLinkGotoDO::getFullShortUrl, fullShortUrl);
+            ShortLinkGotoDO gotoDO = shortLinkGotoMapper.selectOne(lambdaQueryWrapper);
+            if (gotoDO == null) {
+                ((HttpServletResponse) response).sendRedirect("/page/notfound");
+                stringRedisTemplate.opsForValue().set(String.format(GOTO_IS_NULL_SHORT_LINK_KEY, fullShortUrl), "-", 30, TimeUnit.MINUTES);
+                return;
+            }
+            LambdaQueryWrapper<ShortLinkDO> queryWrapper = Wrappers.lambdaQuery(ShortLinkDO.class)
+                    .eq(ShortLinkDO::getGid, gotoDO.getGid())
+                    .eq(ShortLinkDO::getFullShortUrl, fullShortUrl)
+                    .eq(ShortLinkDO::getDelFlag, 0)
+                    .eq(ShortLinkDO::getEnableStatus, 0);
+            ShortLinkDO shortLinkDO = baseMapper.selectOne(queryWrapper);
+            if (shortLinkDO == null || (shortLinkDO.getValidDate() != null && shortLinkDO.getValidDate().before(new Date()))) {
+                ((HttpServletResponse) response).sendRedirect("/page/notfound");
+                stringRedisTemplate.opsForValue().set(String.format(GOTO_IS_NULL_SHORT_LINK_KEY, fullShortUrl), "-", 30, TimeUnit.MINUTES);
+                return;
+            }
+
+            stringRedisTemplate.opsForValue().set(
+                    String.format(GOTO_SHORT_LINK_KEY, fullShortUrl),
+                    shortLinkDO.getOriginUrl(),
+                    LinkUtil.getLinkCacheValidTime(shortLinkDO.getValidDate()), TimeUnit.MILLISECONDS
+            );
+            ((HttpServletResponse) response).sendRedirect(shortLinkDO.getOriginUrl());
+
+
+
+        } finally {
+            lock.unlock();
+        }
     }
 
 
