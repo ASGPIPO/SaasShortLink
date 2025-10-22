@@ -63,13 +63,16 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
     public ShortLinkCreateRespDTO createShortLink(ShortLinkCreateReqDTO requestParam) throws ServiceException {
 
         String shortLinkSuffix = generateSuffix(requestParam);
+        String originLink = requestParam.getOriginUrl().startsWith("http://") || requestParam.getOriginUrl().startsWith("https://")
+                ? requestParam.getOriginUrl()
+                : "https://" + requestParam.getOriginUrl();
         String fullShortUrl = StrBuilder.create(createShortLinkDefaultDomain)
                 .append("/")
                 .append(shortLinkSuffix)
                 .toString();
         ShortLinkDO shortLinkDO = ShortLinkDO.builder()
                 .domain(requestParam.getDomain())
-                .originUrl(requestParam.getOriginUrl())
+                .originUrl(originLink)
                 .gid(requestParam.getGid())
                 .createdType(requestParam.getCreatedType())
                 .validDateType(requestParam.getValidDateType())
@@ -100,7 +103,7 @@ public class ShortLinkServiceImpl extends ServiceImpl<ShortLinkMapper, ShortLink
         }
         stringRedisTemplate.opsForValue().set(
                 String.format(GOTO_SHORT_LINK_KEY, fullShortUrl),
-                requestParam.getOriginUrl(),
+                originLink,
                 LinkUtil.getLinkCacheValidTime(requestParam.getValidDate()), TimeUnit.MILLISECONDS
         );
         shortLinkCreateCachePenetrationBloomFilter.add(fullShortUrl);
