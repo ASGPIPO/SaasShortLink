@@ -15,19 +15,32 @@
  * limitations under the License.
  */
 
-package org.shortlinkbyself.pipo.project.dto.req;
+package org.shortlinkbyself.pipo.project.dao.entity;
 
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.baomidou.mybatisplus.annotation.TableName;
+import org.shortlinkbyself.pipo.project.common.database.BaseDO;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
-import org.shortlinkbyself.pipo.project.dao.entity.LinkAccessLogsDO;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
 
 /**
- * 短链接监控访问记录请求参数
+ * 浏览器统计访问实体
  *
  */
-
 @Data
-public class ShortLinkStatsAccessRecordReqDTO extends Page<LinkAccessLogsDO> {
+@TableName("t_link_browser_stats")
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class LinkBrowserStatsDO extends BaseDO {
+
+    /**
+     * id
+     */
+    private Long id;
 
     /**
      * 完整短链接
@@ -35,22 +48,17 @@ public class ShortLinkStatsAccessRecordReqDTO extends Page<LinkAccessLogsDO> {
     private String fullShortUrl;
 
     /**
-     * 分组标识
+     * 日期
      */
-    private String gid;
+    private Date date;
 
     /**
-     * 开始日期
+     * 访问量
      */
-    private String startDate;
+    private Integer cnt;
 
     /**
-     * 结束日期
+     * 浏览器
      */
-    private String endDate;
-
-    /**
-     * 启用标识 0：启用 1：未启用
-     */
-    private Integer enableStatus;
+    private String browser;
 }

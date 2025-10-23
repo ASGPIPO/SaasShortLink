@@ -15,42 +15,55 @@
  * limitations under the License.
  */
 
-package org.shortlinkbyself.pipo.project.dto.req;
+package org.shortlinkbyself.pipo.project.dao.entity;
 
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.baomidou.mybatisplus.annotation.TableName;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
-import org.shortlinkbyself.pipo.project.dao.entity.LinkAccessLogsDO;
+import lombok.NoArgsConstructor;
+import org.shortlinkbyself.pipo.project.common.database.BaseDO;
+
+import java.util.Date;
 
 /**
- * 短链接监控访问记录请求参数
- *
+ * 短链接今日统计实体
+ * 
  */
-
+@TableName("t_link_stats_today")
 @Data
-public class ShortLinkStatsAccessRecordReqDTO extends Page<LinkAccessLogsDO> {
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class LinkStatsTodayDO extends BaseDO {
 
     /**
-     * 完整短链接
+     * id
+     */
+    private Long id;
+
+    /**
+     * 短链接
      */
     private String fullShortUrl;
 
     /**
-     * 分组标识
+     * 日期
      */
-    private String gid;
+    private Date date;
 
     /**
-     * 开始日期
+     * 今日pv
      */
-    private String startDate;
+    private Integer todayPv;
 
     /**
-     * 结束日期
+     * 今日uv
      */
-    private String endDate;
+    private Integer todayUv;
 
     /**
-     * 启用标识 0：启用 1：未启用
+     * 今日ip数
      */
-    private Integer enableStatus;
+    private Integer todayUip;
 }

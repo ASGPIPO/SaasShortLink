@@ -17,22 +17,14 @@
 
 package org.shortlinkbyself.pipo.project.dto.req;
 
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.Data;
-import org.shortlinkbyself.pipo.project.dao.entity.LinkAccessLogsDO;
 
 /**
- * 短链接监控访问记录请求参数
+ * 分组短链接监控请求参数
  *
- */
-
+ * */
 @Data
-public class ShortLinkStatsAccessRecordReqDTO extends Page<LinkAccessLogsDO> {
-
-    /**
-     * 完整短链接
-     */
-    private String fullShortUrl;
+public class ShortLinkGroupStatsReqDTO {
 
     /**
      * 分组标识
@@ -48,9 +40,4 @@ public class ShortLinkStatsAccessRecordReqDTO extends Page<LinkAccessLogsDO> {
      * 结束日期
      */
     private String endDate;
-
-    /**
-     * 启用标识 0：启用 1：未启用
-     */
-    private Integer enableStatus;
 }

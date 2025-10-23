@@ -15,19 +15,30 @@
  * limitations under the License.
  */
 
-package org.shortlinkbyself.pipo.project.dto.req;
+package org.shortlinkbyself.pipo.project.dao.entity;
 
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.baomidou.mybatisplus.annotation.TableName;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
-import org.shortlinkbyself.pipo.project.dao.entity.LinkAccessLogsDO;
+import lombok.NoArgsConstructor;
+import org.shortlinkbyself.pipo.project.common.database.BaseDO;
 
 /**
- * 短链接监控访问记录请求参数
+ * 访问日志监控实体
  *
  */
-
 @Data
-public class ShortLinkStatsAccessRecordReqDTO extends Page<LinkAccessLogsDO> {
+@TableName("t_link_access_logs")
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class LinkAccessLogsDO extends BaseDO {
+
+    /**
+     * id
+     */
+    private Long id;
 
     /**
      * 完整短链接
@@ -35,22 +46,37 @@ public class ShortLinkStatsAccessRecordReqDTO extends Page<LinkAccessLogsDO> {
     private String fullShortUrl;
 
     /**
-     * 分组标识
+     * 用户信息
      */
-    private String gid;
+    private String user;
 
     /**
-     * 开始日期
+     * 浏览器
      */
-    private String startDate;
+    private String browser;
 
     /**
-     * 结束日期
+     * 操作系统
      */
-    private String endDate;
+    private String os;
 
     /**
-     * 启用标识 0：启用 1：未启用
+     * ip
      */
-    private Integer enableStatus;
+    private String ip;
+
+    /**
+     * 访问网络
+     */
+    private String network;
+
+    /**
+     * 访问设备
+     */
+    private String device;
+
+    /**
+     * 地区
+     */
+    private String locale;
 }

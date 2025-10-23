@@ -6,6 +6,7 @@ import com.google.protobuf.ServiceException;
 import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;
 import org.shortlinkbyself.pipo.project.dao.entity.ShortLinkDO;
+import org.shortlinkbyself.pipo.project.dto.biz.ShortLinkStatsRecordDTO;
 import org.shortlinkbyself.pipo.project.dto.req.ShortLinkCreateReqDTO;
 import org.shortlinkbyself.pipo.project.dto.req.ShortLinkPageReqDTO;
 import org.shortlinkbyself.pipo.project.dto.req.ShortLinkUpdateReqDTO;
@@ -25,4 +26,6 @@ public interface ShortLinkService extends IService<ShortLinkDO> {
     Void updateShortLinkInfo(ShortLinkUpdateReqDTO shortLinkInfo);
 
     void restoreUrl(String shortUri, ServletRequest request, ServletResponse response);
+
+    void shortLinkStats(ShortLinkStatsRecordDTO statsRecord);
 }

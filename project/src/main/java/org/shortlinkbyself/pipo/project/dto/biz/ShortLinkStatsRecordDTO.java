@@ -15,19 +15,23 @@
  * limitations under the License.
  */
 
-package org.shortlinkbyself.pipo.project.dto.req;
+package org.shortlinkbyself.pipo.project.dto.biz;
 
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
-import org.shortlinkbyself.pipo.project.dao.entity.LinkAccessLogsDO;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
 
 /**
- * 短链接监控访问记录请求参数
- *
- */
-
+ * 短链接统计实体
+ *  */
 @Data
-public class ShortLinkStatsAccessRecordReqDTO extends Page<LinkAccessLogsDO> {
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class ShortLinkStatsRecordDTO {
 
     /**
      * 完整短链接
@@ -35,22 +39,52 @@ public class ShortLinkStatsAccessRecordReqDTO extends Page<LinkAccessLogsDO> {
     private String fullShortUrl;
 
     /**
-     * 分组标识
+     * 访问用户IP
      */
-    private String gid;
+    private String remoteAddr;
 
     /**
-     * 开始日期
+     * 操作系统
      */
-    private String startDate;
+    private String os;
 
     /**
-     * 结束日期
+     * 浏览器
      */
-    private String endDate;
+    private String browser;
 
     /**
-     * 启用标识 0：启用 1：未启用
+     * 操作设备
      */
-    private Integer enableStatus;
+    private String device;
+
+    /**
+     * 网络
+     */
+    private String network;
+
+    /**
+     * UV
+     */
+    private String uv;
+
+    /**
+     * UV访问标识
+     */
+    private Boolean uvFirstFlag;
+
+    /**
+     * UIP访问标识
+     */
+    private Boolean uipFirstFlag;
+
+    /**
+     * 消息队列唯一标识
+     */
+    private String keys;
+
+    /**
+     * 当前时间
+     */
+    private Date currentDate;
 }

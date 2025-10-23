@@ -17,22 +17,28 @@
 
 package org.shortlinkbyself.pipo.project.dto.req;
 
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;
-import org.shortlinkbyself.pipo.project.dao.entity.LinkAccessLogsDO;
+
+import java.util.Date;
+import java.util.List;
 
 /**
- * 短链接监控访问记录请求参数
+ * 短链接批量创建请求对象
  *
- */
-
+ * */
 @Data
-public class ShortLinkStatsAccessRecordReqDTO extends Page<LinkAccessLogsDO> {
+public class ShortLinkBatchCreateReqDTO {
 
     /**
-     * 完整短链接
+     * 原始链接集合
      */
-    private String fullShortUrl;
+    private List<String> originUrls;
+
+    /**
+     * 描述集合
+     */
+    private List<String> describes;
 
     /**
      * 分组标识
@@ -40,17 +46,18 @@ public class ShortLinkStatsAccessRecordReqDTO extends Page<LinkAccessLogsDO> {
     private String gid;
 
     /**
-     * 开始日期
+     * 创建类型 0：接口创建 1：控制台创建
      */
-    private String startDate;
+    private Integer createdType;
 
     /**
-     * 结束日期
+     * 有效期类型 0：永久有效 1：自定义
      */
-    private String endDate;
+    private Integer validDateType;
 
     /**
-     * 启用标识 0：启用 1：未启用
+     * 有效期
      */
-    private Integer enableStatus;
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
+    private Date validDate;
 }

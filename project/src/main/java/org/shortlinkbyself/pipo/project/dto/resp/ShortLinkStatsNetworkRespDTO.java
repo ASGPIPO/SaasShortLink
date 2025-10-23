@@ -15,42 +15,34 @@
  * limitations under the License.
  */
 
-package org.shortlinkbyself.pipo.project.dto.req;
+package org.shortlinkbyself.pipo.project.dto.resp;
 
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
-import org.shortlinkbyself.pipo.project.dao.entity.LinkAccessLogsDO;
+import lombok.NoArgsConstructor;
 
 /**
- * 短链接监控访问记录请求参数
- *
- */
-
+ * 短链接访问网络监控响应参数
+ *  */
 @Data
-public class ShortLinkStatsAccessRecordReqDTO extends Page<LinkAccessLogsDO> {
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class ShortLinkStatsNetworkRespDTO {
 
     /**
-     * 完整短链接
+     * 统计
      */
-    private String fullShortUrl;
+    private Integer cnt;
 
     /**
-     * 分组标识
+     * 访问网络
      */
-    private String gid;
+    private String network;
 
     /**
-     * 开始日期
+     * 占比
      */
-    private String startDate;
-
-    /**
-     * 结束日期
-     */
-    private String endDate;
-
-    /**
-     * 启用标识 0：启用 1：未启用
-     */
-    private Integer enableStatus;
+    private Double ratio;
 }

@@ -15,19 +15,32 @@
  * limitations under the License.
  */
 
-package org.shortlinkbyself.pipo.project.dto.req;
+package org.shortlinkbyself.pipo.project.dao.entity;
 
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.baomidou.mybatisplus.annotation.TableName;
+import org.shortlinkbyself.pipo.project.common.database.BaseDO;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
-import org.shortlinkbyself.pipo.project.dao.entity.LinkAccessLogsDO;
+import lombok.NoArgsConstructor;
+
+import java.util.Date;
 
 /**
- * 短链接监控访问记录请求参数
+ * 短链接基础访问监控实体
  *
  */
-
 @Data
-public class ShortLinkStatsAccessRecordReqDTO extends Page<LinkAccessLogsDO> {
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+@TableName("t_link_access_stats")
+public class LinkAccessStatsDO extends BaseDO {
+
+    /**
+     * id
+     */
+    private Long id;
 
     /**
      * 完整短链接
@@ -35,22 +48,32 @@ public class ShortLinkStatsAccessRecordReqDTO extends Page<LinkAccessLogsDO> {
     private String fullShortUrl;
 
     /**
-     * 分组标识
+     * 日期
      */
-    private String gid;
+    private Date date;
 
     /**
-     * 开始日期
+     * 访问量
      */
-    private String startDate;
+    private Integer pv;
 
     /**
-     * 结束日期
+     * 独立访客数
      */
-    private String endDate;
+    private Integer uv;
 
     /**
-     * 启用标识 0：启用 1：未启用
+     * 独立ip数
      */
-    private Integer enableStatus;
+    private Integer uip;
+
+    /**
+     * 小时
+     */
+    private Integer hour;
+
+    /**
+     * 星期
+     */
+    private Integer weekday;
 }

@@ -15,42 +15,31 @@
  * limitations under the License.
  */
 
-package org.shortlinkbyself.pipo.project.dto.req;
+package org.shortlinkbyself.pipo.project.dto.resp;
 
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
-import org.shortlinkbyself.pipo.project.dao.entity.LinkAccessLogsDO;
+import lombok.NoArgsConstructor;
+
+import java.util.List;
 
 /**
- * 短链接监控访问记录请求参数
- *
- */
-
+ * 短链接批量创建响应对象
+ *  */
 @Data
-public class ShortLinkStatsAccessRecordReqDTO extends Page<LinkAccessLogsDO> {
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class ShortLinkBatchCreateRespDTO {
 
     /**
-     * 完整短链接
+     * 成功数量
      */
-    private String fullShortUrl;
+    private Integer total;
 
     /**
-     * 分组标识
+     * 批量创建返回参数
      */
-    private String gid;
-
-    /**
-     * 开始日期
-     */
-    private String startDate;
-
-    /**
-     * 结束日期
-     */
-    private String endDate;
-
-    /**
-     * 启用标识 0：启用 1：未启用
-     */
-    private Integer enableStatus;
+    private List<ShortLinkBaseInfoRespDTO> baseLinkInfos;
 }
