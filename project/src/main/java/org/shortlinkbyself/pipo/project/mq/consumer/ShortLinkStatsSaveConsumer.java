@@ -8,40 +8,39 @@ import cn.hutool.http.HttpUtil;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.google.protobuf.ServiceException;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.redisson.api.RedissonClient;
 import org.shortlinkbyself.pipo.project.dao.entity.*;
 import org.shortlinkbyself.pipo.project.dao.mapper.*;
 import org.shortlinkbyself.pipo.project.dto.biz.ShortLinkStatsRecordDTO;
+import org.shortlinkbyself.pipo.project.mq.idempotent.MessageQueueIdempotentHandler;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.redis.connection.stream.*;
-import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.connection.stream.MapRecord;
+import org.springframework.data.redis.connection.stream.RecordId;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.stream.StreamListener;
 import org.springframework.stereotype.Component;
 
-import java.time.Duration;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 
-import static org.shortlinkbyself.pipo.project.common.constant.RedisKeyConstant.SHORT_LINK_STATS_STREAM_TOPIC_KEY;
 import static org.shortlinkbyself.pipo.project.common.constant.ShortLinkConstant.AMAP_REMOTE_URL;
 
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class ShortLinkStatsSaveConsumer {
+public class ShortLinkStatsSaveConsumer implements StreamListener<String, MapRecord<String, String, String>> {
 
     private final StringRedisTemplate stringRedisTemplate;
-    private final RedisTemplate<Object, Object> redisTemplate;
     private final ShortLinkGotoMapper shortLinkGotoMapper;
     private final LinkAccessStatsMapper linkAccessStatsMapper;
     private final ShortLinkMapper shortLinkMapper;
-    private final RedissonClient redissonClient;
     private final LinkLocaleStatsMapper linkLocaleStatsMapper;
     private final LinkOsStatsMapper linkOsStatsMapper;
     private final LinkBrowserStatsMapper linkBrowserStatsMapper;
@@ -49,44 +48,40 @@ public class ShortLinkStatsSaveConsumer {
     private final LinkDeviceStatsMapper linkDeviceStatsMapper;
     private final LinkNetworkStatsMapper linkNetworkStatsMapper;
     private final LinkStatsTodayMapper linkStatsTodayMapper;
+    private final MessageQueueIdempotentHandler messageQueueIdempotentHandler;
     @Value("${short-link.stats.locale.amap-key}")
     private String statsLocaleAmapKey;
-
+    private static final Long MAX_RETRY_TIMES = 5L;
     /**
      * 延迟消费短链接
      */
-    public void get() {
 
         //stringRedisTemplate.opsForStream().createGroup(SHORT_LINK_STATS_STREAM_TOPIC_KEY, "stats-consumer-group");
-        while (true) {
-            List<MapRecord<String, Object, Object>> records = stringRedisTemplate.opsForStream().read(
-                    Consumer.from("stats-consumer-group", "stats-worker-1"),
-                    StreamReadOptions.empty().count(1).block(Duration.ofSeconds(1)),
-                    StreamOffset.create(SHORT_LINK_STATS_STREAM_TOPIC_KEY, ReadOffset.lastConsumed()));
+        @Override
+        public void onMessage(MapRecord<String, String, String> message) {
+            String stream = message.getStream();
+            RecordId messageId = message.getId();
+            Map<String, String> producedMap = message.getValue();
 
-            if (records == null || records.isEmpty()) {
-                continue;
+            if (messageQueueIdempotentHandler.isMessageBeingConsumed(messageId.getValue())) {
+                if (messageQueueIdempotentHandler.isAccomplish(messageId.getValue())) {
+                    return;
+                }
+
             }
-            for (MapRecord<String, Object, Object> record : records) {
-                String messageId = record.getId().getValue();
-
-                Map<String, String> messageBody = new HashMap<>();
-                record.getValue().forEach((field, value) -> {
-                    messageBody.put(field.toString(), value.toString());
-                });
-
-                // 然后正常处理
-                String json = messageBody.get("statsRecord");
-                ShortLinkStatsRecordDTO dto = JSON.parseObject(json, ShortLinkStatsRecordDTO.class);
+            ShortLinkStatsRecordDTO dto = JSON.parseObject(producedMap.get("statsRecord"), ShortLinkStatsRecordDTO.class);
+            try {
                 actualSaveShortLinkStats(dto);
-                //System.out.println(dto);
+                messageQueueIdempotentHandler.setAccomplish(messageId.getValue());
+                stringRedisTemplate.opsForStream().acknowledge("stats-consumer-group", message);
+                stringRedisTemplate.opsForStream().delete(Objects.requireNonNull(stream), messageId.getValue());
+            } catch (Exception e) {
 
-                //INSERT IN DB
-                // if success
-                stringRedisTemplate.opsForStream().acknowledge("stats-consumer-group", record);
+                log.error("消费失败，消息将重试: {}", message.getId(), e);
+                throw e;
             }
         }
-    }
+
 
     @SneakyThrows
     public void actualSaveShortLinkStats(ShortLinkStatsRecordDTO shortLinkStatsRecordDTO) {
@@ -95,13 +90,14 @@ public class ShortLinkStatsSaveConsumer {
         }
         String fullShortUrl = shortLinkStatsRecordDTO.getFullShortUrl();
         LambdaQueryWrapper<ShortLinkGotoDO> lambdaQueryWrapper = new LambdaQueryWrapper<>();
-        lambdaQueryWrapper.eq(ShortLinkGotoDO::getFullShortUrl, fullShortUrl);
-        ShortLinkGotoDO shortLinkGotoDo = shortLinkGotoMapper.selectOne(lambdaQueryWrapper);
+        LambdaQueryWrapper<ShortLinkGotoDO> queryWrapper = Wrappers.lambdaQuery(ShortLinkGotoDO.class)
+                .eq(ShortLinkGotoDO::getFullShortUrl, fullShortUrl);
+        ShortLinkGotoDO shortLinkGotoDO = shortLinkGotoMapper.selectOne(queryWrapper);
         Date currentDate = shortLinkStatsRecordDTO.getCurrentDate();
         int hour = DateUtil.hour(currentDate, true);
         Week week = DateUtil.dayOfWeekEnum(currentDate);
         int weekValue = week.getIso8601Value();
-        String gid = shortLinkGotoDo.getGid();
+        String gid = shortLinkGotoDO.getGid();
         LinkAccessStatsDO linkAccessStatsDO = new LinkAccessStatsDO().builder()
                 .pv(1)
                 .uv(shortLinkStatsRecordDTO.getUvFirstFlag() ? 1 : 0)
@@ -184,4 +180,25 @@ public class ShortLinkStatsSaveConsumer {
                 .build();
         linkStatsTodayMapper.shortLinkTodayState(linkStatsTodayDO);
     }
+
+    private void handleMessage(MapRecord<String, String, String> message) {
+        String stream = message.getStream();
+        RecordId messageId = message.getId();
+        Map<String, String> producedMap = message.getValue();
+        // 检查重试次数,超限进入死信
+        String retryKey = "mq:retry:" + messageId.getValue();
+        Long retryTimes = stringRedisTemplate.opsForValue().increment(retryKey, 1);
+        stringRedisTemplate.expire(retryKey, 24, TimeUnit.HOURS);
+        if (retryTimes > MAX_RETRY_TIMES) {
+            stringRedisTemplate.opsForStream().add("SHORT_LINK_STATS_Dead_LETTER_QUEUE_KEY", producedMap);
+            stringRedisTemplate.opsForStream().acknowledge("stats-consumer-group", message);
+            stringRedisTemplate.opsForStream().delete(Objects.requireNonNull(stream), messageId.getValue());
+        }
+        //删除幂等ID,之后重试
+        else {
+            messageQueueIdempotentHandler.delMessageProcessed(messageId.getValue());
+
+        }
+    }
+
 }
