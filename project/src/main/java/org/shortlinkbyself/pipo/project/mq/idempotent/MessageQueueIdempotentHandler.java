@@ -19,8 +19,9 @@ public class MessageQueueIdempotentHandler {
     private static final String IDEMPOTENT_KEY_PREFIX = "short-link:idempotent:";
 
     /**
-     * 判断当前消息是否消费过
-     *
+     *  尝试标记消息为“正在消费”。
+     *  若该消息已存在（正在消费或已完成），返回 true；
+     *  若是第一次消费（标记成功），返回 false。
      * @param messageId 消息唯一标识
      * @return 消息是否消费过
      */

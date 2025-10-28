@@ -13,30 +13,31 @@ import com.google.protobuf.ServiceException;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.rocketmq.spring.annotation.RocketMQMessageListener;
+import org.apache.rocketmq.spring.core.RocketMQListener;
 import org.shortlinkbyself.pipo.project.dao.entity.*;
 import org.shortlinkbyself.pipo.project.dao.mapper.*;
 import org.shortlinkbyself.pipo.project.dto.biz.ShortLinkStatsRecordDTO;
 import org.shortlinkbyself.pipo.project.mq.idempotent.MessageQueueIdempotentHandler;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.redis.connection.stream.MapRecord;
-import org.springframework.data.redis.connection.stream.RecordId;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.data.redis.stream.StreamListener;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
-import java.util.concurrent.TimeUnit;
 
 import static org.shortlinkbyself.pipo.project.common.constant.ShortLinkConstant.AMAP_REMOTE_URL;
 
 @Slf4j
-@Component
 @RequiredArgsConstructor
-public class ShortLinkStatsSaveConsumer implements StreamListener<String, MapRecord<String, String, String>> {
-
+@Service
+@RocketMQMessageListener(
+        topic = "${rocketmq.producer.topic}",
+        consumerGroup = "${rocketmq.consumer.group}",
+        maxReconsumeTimes = 5
+)
+public class ShortLinkStatsSaveConsumer implements RocketMQListener<Map<String, String>> {
     private final StringRedisTemplate stringRedisTemplate;
     private final ShortLinkGotoMapper shortLinkGotoMapper;
     private final LinkAccessStatsMapper linkAccessStatsMapper;
@@ -51,34 +52,32 @@ public class ShortLinkStatsSaveConsumer implements StreamListener<String, MapRec
     private final MessageQueueIdempotentHandler messageQueueIdempotentHandler;
     @Value("${short-link.stats.locale.amap-key}")
     private String statsLocaleAmapKey;
-    private static final Long MAX_RETRY_TIMES = 5L;
+
     /**
      * 延迟消费短链接
      */
-
-        //stringRedisTemplate.opsForStream().createGroup(SHORT_LINK_STATS_STREAM_TOPIC_KEY, "stats-consumer-group");
+        @SneakyThrows
         @Override
-        public void onMessage(MapRecord<String, String, String> message) {
-            String stream = message.getStream();
-            RecordId messageId = message.getId();
-            Map<String, String> producedMap = message.getValue();
+        public void onMessage(Map<String, String> message) {
 
-            if (messageQueueIdempotentHandler.isMessageBeingConsumed(messageId.getValue())) {
-                if (messageQueueIdempotentHandler.isAccomplish(messageId.getValue())) {
+            String keys = message.get("keys");
+            if (messageQueueIdempotentHandler.isMessageBeingConsumed(keys)) {
+                if (messageQueueIdempotentHandler.isAccomplish(keys)) {
                     return;
                 }
+                throw new ServiceException("消息未完成流程，需要消息队列重试");
 
             }
-            ShortLinkStatsRecordDTO dto = JSON.parseObject(producedMap.get("statsRecord"), ShortLinkStatsRecordDTO.class);
             try {
-                actualSaveShortLinkStats(dto);
-                messageQueueIdempotentHandler.setAccomplish(messageId.getValue());
-                stringRedisTemplate.opsForStream().acknowledge("stats-consumer-group", message);
-                stringRedisTemplate.opsForStream().delete(Objects.requireNonNull(stream), messageId.getValue());
-            } catch (Exception e) {
+                ShortLinkStatsRecordDTO dto = JSON.parseObject(message.get("statsRecord"), ShortLinkStatsRecordDTO.class);
 
-                log.error("消费失败，消息将重试: {}", message.getId(), e);
-                throw e;
+                actualSaveShortLinkStats(dto);
+
+                messageQueueIdempotentHandler.setAccomplish(keys);
+            }catch (Throwable ex) {
+                log.error("记录短链接监控消费异常", ex);
+                messageQueueIdempotentHandler.delMessageProcessed(keys);
+                throw new ServiceException("记录短链接监控消费异常");
             }
         }
 
@@ -86,7 +85,7 @@ public class ShortLinkStatsSaveConsumer implements StreamListener<String, MapRec
     @SneakyThrows
     public void actualSaveShortLinkStats(ShortLinkStatsRecordDTO shortLinkStatsRecordDTO) {
         if (BeanUtil.isEmpty(shortLinkStatsRecordDTO)) {
-            throw new ServiceException("stats data null");
+                throw new ServiceException("stats data null");
         }
         String fullShortUrl = shortLinkStatsRecordDTO.getFullShortUrl();
         LambdaQueryWrapper<ShortLinkGotoDO> lambdaQueryWrapper = new LambdaQueryWrapper<>();
@@ -179,26 +178,6 @@ public class ShortLinkStatsSaveConsumer implements StreamListener<String, MapRec
                 .date(currentDate)
                 .build();
         linkStatsTodayMapper.shortLinkTodayState(linkStatsTodayDO);
-    }
-
-    private void handleMessage(MapRecord<String, String, String> message) {
-        String stream = message.getStream();
-        RecordId messageId = message.getId();
-        Map<String, String> producedMap = message.getValue();
-        // 检查重试次数,超限进入死信
-        String retryKey = "mq:retry:" + messageId.getValue();
-        Long retryTimes = stringRedisTemplate.opsForValue().increment(retryKey, 1);
-        stringRedisTemplate.expire(retryKey, 24, TimeUnit.HOURS);
-        if (retryTimes > MAX_RETRY_TIMES) {
-            stringRedisTemplate.opsForStream().add("SHORT_LINK_STATS_Dead_LETTER_QUEUE_KEY", producedMap);
-            stringRedisTemplate.opsForStream().acknowledge("stats-consumer-group", message);
-            stringRedisTemplate.opsForStream().delete(Objects.requireNonNull(stream), messageId.getValue());
-        }
-        //删除幂等ID,之后重试
-        else {
-            messageQueueIdempotentHandler.delMessageProcessed(messageId.getValue());
-
-        }
     }
 
 }
