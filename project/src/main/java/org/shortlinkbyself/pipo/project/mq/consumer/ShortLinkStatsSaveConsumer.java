@@ -26,6 +26,7 @@ import org.springframework.stereotype.Service;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.shortlinkbyself.pipo.project.common.constant.ShortLinkConstant.AMAP_REMOTE_URL;
 
@@ -69,42 +70,48 @@ public class ShortLinkStatsSaveConsumer implements RocketMQListener<Map<String, 
 
             }
             try {
-                ShortLinkStatsRecordDTO dto = JSON.parseObject(message.get("statsRecord"), ShortLinkStatsRecordDTO.class);
 
-                actualSaveShortLinkStats(dto);
 
-                messageQueueIdempotentHandler.setAccomplish(keys);
+                String gid = message.get("gid");
+                ShortLinkStatsRecordDTO statsRecord = JSON.parseObject(message.get("statsRecord"), ShortLinkStatsRecordDTO.class);
+                String fullShortUrl = statsRecord.getFullShortUrl();
+                actualSaveShortLinkStats(fullShortUrl, gid, statsRecord);
+
+
             }catch (Throwable ex) {
                 log.error("记录短链接监控消费异常", ex);
                 messageQueueIdempotentHandler.delMessageProcessed(keys);
                 throw new ServiceException("记录短链接监控消费异常");
             }
+            messageQueueIdempotentHandler.setAccomplish(keys);
         }
 
 
     @SneakyThrows
-    public void actualSaveShortLinkStats(ShortLinkStatsRecordDTO shortLinkStatsRecordDTO) {
-        if (BeanUtil.isEmpty(shortLinkStatsRecordDTO)) {
+    public void actualSaveShortLinkStats(String fullShortUrl, String gid, ShortLinkStatsRecordDTO shortLinkStatsRecordDTO) {
+        fullShortUrl = Optional.ofNullable(fullShortUrl).orElse(shortLinkStatsRecordDTO.getFullShortUrl());
+            if (BeanUtil.isEmpty(shortLinkStatsRecordDTO)) {
                 throw new ServiceException("stats data null");
         }
-        String fullShortUrl = shortLinkStatsRecordDTO.getFullShortUrl();
-        LambdaQueryWrapper<ShortLinkGotoDO> lambdaQueryWrapper = new LambdaQueryWrapper<>();
-        LambdaQueryWrapper<ShortLinkGotoDO> queryWrapper = Wrappers.lambdaQuery(ShortLinkGotoDO.class)
-                .eq(ShortLinkGotoDO::getFullShortUrl, fullShortUrl);
-        ShortLinkGotoDO shortLinkGotoDO = shortLinkGotoMapper.selectOne(queryWrapper);
-        Date currentDate = shortLinkStatsRecordDTO.getCurrentDate();
-        int hour = DateUtil.hour(currentDate, true);
-        Week week = DateUtil.dayOfWeekEnum(currentDate);
+
+        if (StrUtil.isBlank(gid)) {
+            LambdaQueryWrapper<ShortLinkGotoDO> queryWrapper = Wrappers.lambdaQuery(ShortLinkGotoDO.class)
+                    .eq(ShortLinkGotoDO::getFullShortUrl, fullShortUrl);
+            ShortLinkGotoDO shortLinkGotoDO = shortLinkGotoMapper.selectOne(queryWrapper);
+            gid = shortLinkGotoDO.getGid();
+        }
+        int hour = DateUtil.hour(new Date(), true);
+        Week week = DateUtil.dayOfWeekEnum(new Date());
         int weekValue = week.getIso8601Value();
-        String gid = shortLinkGotoDO.getGid();
-        LinkAccessStatsDO linkAccessStatsDO = new LinkAccessStatsDO().builder()
+        LinkAccessStatsDO linkAccessStatsDO = LinkAccessStatsDO.builder()
                 .pv(1)
                 .uv(shortLinkStatsRecordDTO.getUvFirstFlag() ? 1 : 0)
                 .uip(shortLinkStatsRecordDTO.getUipFirstFlag() ? 1 : 0)
                 .hour(hour)
                 .weekday(weekValue)
                 .fullShortUrl(fullShortUrl)
-                .date(currentDate)
+                .gid(gid)
+                .date(new Date())
                 .build();
         linkAccessStatsMapper.shortLinkStats(linkAccessStatsDO);
         Map<String, Object> localeParamMap = new HashMap<>();
@@ -118,44 +125,48 @@ public class ShortLinkStatsSaveConsumer implements RocketMQListener<Map<String, 
         if (StrUtil.isNotBlank(infoCode) && StrUtil.equals(infoCode, "10000")) {
             String province = localeResultObj.getString("province");
             boolean unknownFlag = StrUtil.equals(province, "[]");
-            LinkLocaleStatsDO linkLocaleStatsDO =
-                    LinkLocaleStatsDO.builder()
+            LinkLocaleStatsDO linkLocaleStatsDO = LinkLocaleStatsDO.builder()
                     .province(actualProvince = unknownFlag ? actualProvince : province)
                     .city(actualCity = unknownFlag ? actualCity : localeResultObj.getString("city"))
                     .adcode(unknownFlag ? "未知" : localeResultObj.getString("adcode"))
                     .cnt(1)
                     .fullShortUrl(fullShortUrl)
                     .country("中国")
-                    .date(currentDate)
+                    .gid(gid)
+                    .date(new Date())
                     .build();
             linkLocaleStatsMapper.shortLinkLocaleState(linkLocaleStatsDO);
         }
         LinkOsStatsDO linkOsStatsDO = LinkOsStatsDO.builder()
                 .os(shortLinkStatsRecordDTO.getOs())
                 .cnt(1)
+                .gid(gid)
                 .fullShortUrl(fullShortUrl)
-                .date(currentDate)
+                .date(new Date())
                 .build();
         linkOsStatsMapper.shortLinkOsState(linkOsStatsDO);
         LinkBrowserStatsDO linkBrowserStatsDO = LinkBrowserStatsDO.builder()
                 .browser(shortLinkStatsRecordDTO.getBrowser())
                 .cnt(1)
+                .gid(gid)
                 .fullShortUrl(fullShortUrl)
-                .date(currentDate)
+                .date(new Date())
                 .build();
         linkBrowserStatsMapper.shortLinkBrowserState(linkBrowserStatsDO);
         LinkDeviceStatsDO linkDeviceStatsDO = LinkDeviceStatsDO.builder()
                 .device(shortLinkStatsRecordDTO.getDevice())
                 .cnt(1)
+                .gid(gid)
                 .fullShortUrl(fullShortUrl)
-                .date(currentDate)
+                .date(new Date())
                 .build();
         linkDeviceStatsMapper.shortLinkDeviceState(linkDeviceStatsDO);
         LinkNetworkStatsDO linkNetworkStatsDO = LinkNetworkStatsDO.builder()
                 .network(shortLinkStatsRecordDTO.getNetwork())
                 .cnt(1)
+                .gid(gid)
                 .fullShortUrl(fullShortUrl)
-                .date(currentDate)
+                .date(new Date())
                 .build();
         linkNetworkStatsMapper.shortLinkNetworkState(linkNetworkStatsDO);
         LinkAccessLogsDO linkAccessLogsDO = LinkAccessLogsDO.builder()
@@ -166,6 +177,7 @@ public class ShortLinkStatsSaveConsumer implements RocketMQListener<Map<String, 
                 .network(shortLinkStatsRecordDTO.getNetwork())
                 .device(shortLinkStatsRecordDTO.getDevice())
                 .locale(StrUtil.join("-", "中国", actualProvince, actualCity))
+                .gid(gid)
                 .fullShortUrl(fullShortUrl)
                 .build();
         linkAccessLogsMapper.insert(linkAccessLogsDO);
@@ -174,8 +186,9 @@ public class ShortLinkStatsSaveConsumer implements RocketMQListener<Map<String, 
                 .todayPv(1)
                 .todayUv(shortLinkStatsRecordDTO.getUvFirstFlag() ? 1 : 0)
                 .todayUip(shortLinkStatsRecordDTO.getUipFirstFlag() ? 1 : 0)
+                .gid(gid)
                 .fullShortUrl(fullShortUrl)
-                .date(currentDate)
+                .date(new Date())
                 .build();
         linkStatsTodayMapper.shortLinkTodayState(linkStatsTodayDO);
     }
